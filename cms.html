@@ -8,7 +8,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #0a0f1a;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', monospace;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -20,73 +20,339 @@
             border-radius: 20px;
             text-align: center;
             border: 1px solid #334155;
-            width: 350px;
+            width: 380px;
         }
-        .login-box h2 { color: white; margin-bottom: 20px; }
+        .login-box h2 { color: white; margin-bottom: 10px; }
+        .login-box p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
         input {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             margin: 20px 0;
             background: #0f172a;
             border: 1px solid #334155;
             color: white;
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 16px;
         }
         button {
             background: #3b82f6;
             color: white;
-            padding: 12px 24px;
+            padding: 14px 24px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             font-weight: bold;
             font-size: 16px;
+            width: 100%;
         }
-        button:hover { background: #2563eb; }
-        .error { color: #ef4444; margin-top: 10px; display: none; }
+        button:hover:not(:disabled) { background: #2563eb; }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .error { 
+            color: #ef4444; 
+            margin-top: 10px; 
+            display: none;
+            font-size: 14px;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .warning {
+            color: #f59e0b;
+            margin-top: 10px;
+            display: none;
+            font-size: 14px;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .attempts-left {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+        .lockout-timer {
+            color: #f59e0b;
+            font-size: 14px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div class="login-box">
-        <h2>🔐 CMS Login</h2>
-        <input type="password" id="password" placeholder="Enter password" autofocus>
-        <button onclick="checkPassword()">Login</button>
+        <h2>🔐 Secure CMS Login</h2>
+        <p>Enter admin password</p>
+        <input type="password" id="password" placeholder="Password" autofocus>
+        <button onclick="checkPassword()" id="loginBtn">Login</button>
         <div id="error" class="error"></div>
+        <div id="warning" class="warning"></div>
+        <div id="attemptsLeft" class="attempts-left"></div>
+        <div id="lockoutTimer" class="lockout-timer"></div>
     </div>
 
     <script>
         // CORRECT SHA-256 hash for "peshawar.123"
         const CORRECT_HASH = "617b3de06e754dad66e4b708744d20acc57d95fd72b2d4cbc0e12a16cbaf5c86";
         
-        async function checkPassword() {
-            const pwd = document.getElementById('password').value;
-            const errorDiv = document.getElementById('error');
+        // Rate limiting settings
+        const MAX_ATTEMPTS = 5;
+        const LOCKOUT_MINUTES = 30;
+        const STORAGE_KEY = 'cms_failed_attempts';
+        
+        let lockoutInterval = null;
+        
+        // Get failed attempts from localStorage
+        function getFailedAttempts() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch(e) {
+                    return [];
+                }
+            }
+            return [];
+        }
+        
+        // Save failed attempts
+        function saveFailedAttempts(attempts) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(attempts));
+        }
+        
+        // Clean old attempts (older than LOCKOUT_MINUTES)
+        function cleanOldAttempts() {
+            let attempts = getFailedAttempts();
+            const now = Date.now();
+            const cutoffTime = LOCKOUT_MINUTES * 60 * 1000;
+            attempts = attempts.filter(timestamp => now - timestamp < cutoffTime);
+            saveFailedAttempts(attempts);
+            return attempts;
+        }
+        
+        // Check if currently locked out
+        function isLockedOut() {
+            const attempts = cleanOldAttempts();
+            return attempts.length >= MAX_ATTEMPTS;
+        }
+        
+        // Get remaining lockout time in seconds
+        function getRemainingLockoutTime() {
+            const attempts = getFailedAttempts();
+            if (attempts.length < MAX_ATTEMPTS) return 0;
             
-            // Hash the entered password
-            const encoder = new TextEncoder();
-            const data = encoder.encode(pwd);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            const now = Date.now();
+            const oldestLockoutAttempt = Math.min(...attempts);
+            const lockoutEndTime = oldestLockoutAttempt + (LOCKOUT_MINUTES * 60 * 1000);
             
-            if (hashHex === CORRECT_HASH) {
-                // Password correct
-                sessionStorage.setItem('cms_authenticated', 'true');
-                sessionStorage.setItem('cms_auth_time', Date.now());
-                window.location.href = 'cms_dashboard.html';
+            if (now >= lockoutEndTime) return 0;
+            
+            return Math.ceil((lockoutEndTime - now) / 1000);
+        }
+        
+        // Get remaining attempts
+        function getRemainingAttempts() {
+            const attempts = cleanOldAttempts();
+            return Math.max(0, MAX_ATTEMPTS - attempts.length);
+        }
+        
+        // Record a failed attempt
+        function recordFailedAttempt() {
+            let attempts = getFailedAttempts();
+            attempts.push(Date.now());
+            saveFailedAttempts(attempts);
+            cleanOldAttempts();
+        }
+        
+        // Clear failed attempts (on successful login)
+        function clearFailedAttempts() {
+            localStorage.removeItem(STORAGE_KEY);
+        }
+        
+        // Update UI with lockout/attempt info
+        function updateSecurityInfo() {
+            const attemptsLeft = getRemainingAttempts();
+            const attemptsLeftDiv = document.getElementById('attemptsLeft');
+            const loginBtn = document.getElementById('loginBtn');
+            const passwordInput = document.getElementById('password');
+            
+            if (isLockedOut()) {
+                const remainingSeconds = getRemainingLockoutTime();
+                if (remainingSeconds > 0) {
+                    loginBtn.disabled = true;
+                    passwordInput.disabled = true;
+                    updateLockoutTimer(remainingSeconds);
+                } else {
+                    // Lockout expired, clear attempts
+                    clearFailedAttempts();
+                    loginBtn.disabled = false;
+                    passwordInput.disabled = false;
+                    attemptsLeftDiv.innerHTML = `<span style="color:#10b981;">✅ Lockout expired. You can try again.</span>`;
+                    setTimeout(() => {
+                        attemptsLeftDiv.innerHTML = '';
+                    }, 3000);
+                }
             } else {
-                errorDiv.textContent = '❌ Invalid password!';
+                loginBtn.disabled = false;
+                passwordInput.disabled = false;
+                if (attemptsLeft < MAX_ATTEMPTS) {
+                    attemptsLeftDiv.innerHTML = `⚠️ ${attemptsLeft} attempt${attemptsLeft !== 1 ? 's' : ''} remaining before ${LOCKOUT_MINUTES} minute lockout`;
+                } else {
+                    attemptsLeftDiv.innerHTML = '';
+                }
+            }
+        }
+        
+        // Update lockout timer display
+        function updateLockoutTimer(seconds) {
+            const timerDiv = document.getElementById('lockoutTimer');
+            if (lockoutInterval) clearInterval(lockoutInterval);
+            
+            let remaining = seconds;
+            
+            function updateDisplay() {
+                const minutes = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                timerDiv.innerHTML = `🔒 Too many failed attempts. Try again in ${minutes}:${secs.toString().padStart(2, '0')}`;
+                timerDiv.style.display = 'block';
+                
+                if (remaining <= 0) {
+                    clearInterval(lockoutInterval);
+                    timerDiv.style.display = 'none';
+                    clearFailedAttempts();
+                    updateSecurityInfo();
+                }
+                remaining--;
+            }
+            
+            updateDisplay();
+            lockoutInterval = setInterval(updateDisplay, 1000);
+        }
+        
+        // Hide messages after delay
+        function hideMessages() {
+            setTimeout(() => {
+                const errorDiv = document.getElementById('error');
+                const warningDiv = document.getElementById('warning');
+                errorDiv.style.display = 'none';
+                warningDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Check password with rate limiting
+        async function checkPassword() {
+            // Clear previous messages
+            const errorDiv = document.getElementById('error');
+            const warningDiv = document.getElementById('warning');
+            errorDiv.style.display = 'none';
+            warningDiv.style.display = 'none';
+            
+            // Check if locked out
+            if (isLockedOut()) {
+                const remainingSeconds = getRemainingLockoutTime();
+                if (remainingSeconds > 0) {
+                    const minutes = Math.ceil(remainingSeconds / 60);
+                    errorDiv.innerHTML = `🔒 Too many failed attempts. Please wait ${minutes} minutes before trying again.`;
+                    errorDiv.style.display = 'block';
+                    updateSecurityInfo();
+                    return;
+                } else {
+                    clearFailedAttempts();
+                }
+            }
+            
+            const pwd = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            if (!pwd) {
+                errorDiv.innerHTML = '❌ Please enter your password';
                 errorDiv.style.display = 'block';
-                document.getElementById('password').value = '';
-                document.getElementById('password').focus();
+                hideMessages();
+                return;
+            }
+            
+            // Disable button during check
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span>⏳ Verifying...</span>';
+            
+            try {
+                // Hash the entered password
+                const encoder = new TextEncoder();
+                const data = encoder.encode(pwd);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                
+                if (hashHex === CORRECT_HASH) {
+                    // Password correct - clear all failed attempts and login
+                    clearFailedAttempts();
+                    sessionStorage.setItem('cms_authenticated', 'true');
+                    sessionStorage.setItem('cms_auth_time', Date.now());
+                    
+                    // Show success message briefly
+                    loginBtn.innerHTML = '<span>✅ Success! Redirecting...</span>';
+                    
+                    setTimeout(() => {
+                        window.location.href = 'cms_dashboard.html';
+                    }, 500);
+                } else {
+                    // Password incorrect - record failed attempt
+                    recordFailedAttempt();
+                    const remainingAttempts = getRemainingAttempts();
+                    
+                    if (remainingAttempts === 0) {
+                        errorDiv.innerHTML = `❌ Invalid password! You have been locked out for ${LOCKOUT_MINUTES} minutes.`;
+                        errorDiv.style.display = 'block';
+                        updateSecurityInfo();
+                    } else {
+                        errorDiv.innerHTML = `❌ Invalid password! ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining before lockout.`;
+                        errorDiv.style.display = 'block';
+                    }
+                    
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
+                    hideMessages();
+                    updateSecurityInfo();
+                }
+            } catch (err) {
+                errorDiv.innerHTML = '❌ An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+                hideMessages();
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = 'Login';
+            }
+        }
+        
+        // Check if already logged in
+        function checkExistingSession() {
+            const isAuth = sessionStorage.getItem('cms_authenticated');
+            const authTime = sessionStorage.getItem('cms_auth_time');
+            
+            if (isAuth === 'true' && authTime && (Date.now() - parseInt(authTime) < 86400000)) {
+                window.location.href = 'cms_dashboard.html';
             }
         }
         
         // Enter key support
         document.getElementById('password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') checkPassword();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                checkPassword();
+            }
         });
+        
+        // Focus on password field
+        document.getElementById('password').focus();
+        
+        // Initial security check
+        checkExistingSession();
+        updateSecurityInfo();
+        
+        // Update security info every second
+        setInterval(updateSecurityInfo, 1000);
     </script>
 </body>
 </html>
