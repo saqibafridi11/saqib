@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Saqib Afridi | Article</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="./css/article.css">
+</head>
+<body>
+
+<!-- Reading Progress Bar -->
+<div class="progress-container">
+  <div class="progress-bar" id="readingProgressBar"></div>
+</div>
+<div class="progress-percentage" id="progressPercentage">0%</div>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <div class="logo">
+      <h1>&lt;Saqib Afridi/&gt;</h1>
+      <p>// computers, code & innovation</p>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <!-- About Me button: navigates to About me.html -->
+      <a href="About me.html" class="nav-btn" id="aboutPageLink"><i class="fas fa-user-astronaut"></i> About Me</a>
+      <!-- Contact Me button: navigates to contact me.html -->
+      <a href="contact me.html" class="nav-btn" id="contactPageLink"><i class="fas fa-envelope"></i> Contact Me</a>
+      <button class="nav-btn dark-mode-btn" id="darkModeToggle">
+        <i class="fas fa-moon"></i> <span>Dark Mode</span>
+      </button>
+      <a href="#" id="openCMSBtn" class="btn-tech cms-link"><i class="fas fa-crown"></i> Admin CMS</a>
+    </div>
+  </div>
+</header>
+
+<main id="articleMain">
+  <div class="container" style="min-height: 60vh;">
+    <div id="articleDynamicContent">
+      <div class="loading-spinner"><i class="fas fa-microchip fa-spin"></i><p style="margin-top: 16px;">Loading article...</p></div>
+    </div>
+    <div class="back-to-blog">
+      <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i> ← Back to Saqib Afridi Blog</a>
+    </div>
+  </div>
+</main>
+
+<footer class="footer-tech">
+  <div class="container">
+    </div>
+    <div class="copyright">
+       © 2026 All rights Reserved. Crafted with ❤️ by Saqib Afridi.
+    </div>
+  </div>
+</footer>
+
+<!-- Scroll to Top Button -->
+<button class="scroll-top-btn" id="scrollTopBtn">
+  <i class="fas fa-arrow-up"></i>
+</button>
+
+<!-- Modal for About/Contact (kept for backward compatibility but navigation uses separate pages) -->
+<div id="infoModal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 id="modalTitle">About Me</h2>
+      <button class="modal-close" id="closeModalBtn">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="./js/article.js"></script>
+<script>
+  // Override any modal behavior to use page navigation instead of modals for About/Contact
+  // This ensures the buttons in article.html work correctly with separate pages
+  (function() {
+    // Ensure that About and Contact buttons use href navigation (already set in HTML)
+    // But also handle any potential JS that might override them
+    const aboutBtn = document.getElementById('aboutPageLink');
+    const contactBtn = document.getElementById('contactPageLink');
+    
+    if (aboutBtn) {
+      aboutBtn.addEventListener('click', function(e) {
+        // Allow default navigation to About me.html
+        // No preventDefault - let the browser navigate
+      });
+    }
+    
+    if (contactBtn) {
+      contactBtn.addEventListener('click', function(e) {
+        // Allow default navigation to contact me.html
+      });
+    }
+    
+    // Also handle any footer links if they exist
+    const footerAbout = document.getElementById('footerAboutLink');
+    const footerContact = document.getElementById('footerContactLink');
+    if (footerAbout) {
+      footerAbout.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.location.href = 'About me.html';
+      });
+    }
+    if (footerContact) {
+      footerContact.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.location.href = 'contact me.html';
+      });
+    }
+  })();
+</script>
+</body>
+</html>

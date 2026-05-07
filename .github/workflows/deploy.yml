@@ -1,0 +1,65 @@
+name: Deploy with Secure CMS
+
+on:
+  push:
+    branches:
+      - main  # or 'master' depending on your default branch
+
+# Permissions needed for deployment
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js (for hash generation)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Generate SHA-256 hash of password
+        id: hash
+        run: |
+          # Get password from GitHub Secrets
+          PASSWORD="${{ secrets.CMS_PASSWORD }}"
+          
+          # Generate SHA-256 hash using Node.js
+          HASH=$(node -e "const crypto = require('crypto'); console.log(crypto.createHash('sha256').update('$PASSWORD').digest('hex'))")
+          
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+          echo "Generated hash: $HASH"
+      
+      - name: Inject password hash into CMS
+        run: |
+          # Replace the placeholder with the actual SHA-256 hash
+          sed -i "s/{{CMS_PASSWORD_HASH}}/${{ steps.hash.outputs.hash }}/g" cms.html
+          
+          # Verify replacement worked
+          if grep -q "{{CMS_PASSWORD_HASH}}" cms.html; then
+            echo "❌ ERROR: Password hash not replaced!"
+            exit 1
+          else
+            echo "✅ Password hash successfully injected"
+          fi
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

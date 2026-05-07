@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saqib Afridi CMS | Secure Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0f1a; font-family: 'Inter', sans-serif; color: #e2e8f0; }
+    .login-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0f1a; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .login-card { background: #1e293b; padding: 40px; border-radius: 32px; text-align: center; width: 90%; max-width: 400px; border: 1px solid #334155; }
+    .login-card h2 { margin-bottom: 12px; font-size: 1.8rem; }
+    .login-card p { color: #94a3b8; margin-bottom: 20px; }
+    .login-card input { width: 100%; padding: 14px; background: #0f172a; border: 1px solid #334155; border-radius: 12px; color: white; margin: 20px 0; font-size: 1rem; }
+    .login-card button { width: 100%; padding: 14px; background: #3b82f6; border: none; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; font-size: 1rem; transition: 0.2s; }
+    .login-card button:hover:not(:disabled) { background: #2563eb; transform: translateY(-2px); }
+    .login-card button:disabled { opacity: 0.7; cursor: not-allowed; }
+    .error-msg { color: #f87171; margin-bottom: 12px; display: none; font-size: 0.85rem; }
+    .info-msg { color: #60a5fa; margin-bottom: 12px; display: none; font-size: 0.8rem; }
+    
+    /* CMS Styles */
+    .cms-container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid #334155; margin-bottom: 30px; flex-wrap: wrap; gap: 16px; }
+    .logo { font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .admin-badge { font-size: 0.7rem; background: #10b981; color: white; padding: 2px 8px; border-radius: 20px; margin-left: 8px; }
+    .view-blog-btn, .logout-btn { padding: 8px 20px; border-radius: 40px; font-weight: 600; cursor: pointer; border: none; margin-left: 12px; }
+    .view-blog-btn { background: #1e293b; color: #60a5fa; border: 1px solid #3b82f6; }
+    .view-blog-btn:hover { background: #3b82f6; color: white; }
+    .logout-btn { background: #dc2626; color: white; }
+    .logout-btn:hover { background: #b91c1c; }
+    .form-card { background: #1e293b; border-radius: 24px; padding: 24px; margin-bottom: 32px; border: 1px solid #334155; }
+    .form-card h3 { margin-bottom: 20px; font-size: 1.3rem; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-weight: 500; }
+    input, select, textarea { width: 100%; padding: 12px 16px; background: #0f172a; border: 1px solid #334155; border-radius: 12px; color: white; font-family: inherit; font-size: 0.9rem; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; }
+    textarea { resize: vertical; }
+    .btn-primary { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 40px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn-primary:hover { background: #2563eb; transform: translateY(-2px); }
+    .btn-secondary { background: #334155; color: white; border: none; padding: 12px 24px; border-radius: 40px; cursor: pointer; }
+    .form-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .edit-indicator { background: #f59e0b20; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; color: #f59e0b; display: none; }
+    .posts-table { background: #1e293b; border-radius: 24px; padding: 20px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #334155; }
+    th { color: #94a3b8; font-weight: 500; }
+    .edit-post-btn, .delete-post-btn { background: none; border: none; cursor: pointer; padding: 6px 12px; border-radius: 8px; margin: 0 4px; transition: 0.2s; }
+    .edit-post-btn { color: #60a5fa; }
+    .edit-post-btn:hover { background: #3b82f620; }
+    .delete-post-btn { color: #f87171; }
+    .delete-post-btn:hover { background: #ef444420; }
+    .empty-state { text-align: center; padding: 40px; color: #64748b; }
+    .category-manager { margin-bottom: 30px; }
+    .category-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+    .add-category-btn { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-weight: 600; }
+    .add-category-btn:hover { background: #059669; }
+    .reset-categories-btn { background: #f59e0b; color: white; border: none; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-weight: 600; }
+    .reset-categories-btn:hover { background: #d97706; }
+    .categories-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 15px; }
+    .category-card { background: #0f172a; border-radius: 16px; padding: 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #334155; }
+    .category-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .category-details h4 { font-size: 1rem; margin-bottom: 4px; }
+    .category-details p { font-size: 0.7rem; color: #94a3b8; }
+    .category-stats { font-size: 0.75rem; background: #1e293b; padding: 4px 10px; border-radius: 20px; color: #60a5fa; }
+    .edit-cat-btn, .delete-cat-btn { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 8px; transition: 0.2s; }
+    .edit-cat-btn { color: #60a5fa; }
+    .edit-cat-btn:hover { background: #3b82f620; }
+    .delete-cat-btn { color: #f87171; }
+    .delete-cat-btn:hover { background: #ef444420; }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 1000; visibility: hidden; opacity: 0; transition: all 0.2s; }
+    .modal-overlay.active { visibility: visible; opacity: 1; }
+    .modal-container { background: #1e293b; border-radius: 24px; width: 90%; max-width: 500px; border: 1px solid #334155; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #334155; }
+    .modal-close { background: none; border: none; font-size: 28px; cursor: pointer; color: #94a3b8; }
+    .modal-close:hover { color: #ef4444; }
+    .modal-body { padding: 24px; }
+    .icon-preview { background: #0f172a; padding: 8px; border-radius: 8px; margin-top: 8px; }
+    .sync-badge { background: #10b98120; border: 1px solid #10b981; padding: 8px 16px; border-radius: 40px; font-size: 0.8rem; margin-bottom: 20px; display: inline-block; }
+    @media (max-width: 768px) {
+      .cms-container { padding: 12px; }
+      .header { flex-direction: column; text-align: center; }
+      .categories-grid { grid-template-columns: 1fr; }
+      table { font-size: 0.8rem; }
+      th, td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="loginScreen" class="login-container">
+  <div class="login-card">
+    <h2><i class="fas fa-shield-alt"></i> Secure CMS</h2>
+    <p>Enter admin credentials</p>
+    <div id="loginError" class="error-msg"></div>
+    <div id="loginInfo" class="info-msg"></div>
+    <input type="password" id="passwordInput" placeholder="Password" autofocus>
+    <button id="loginBtn"><i class="fas fa-unlock-alt"></i> Authenticate</button>
+  </div>
+</div>
+
+<!-- Admin Panel Root -->
+<div id="adminPanelRoot"></div>
+
+<script>
+  (function() {
+    // ========== SECURE AUTHENTICATION ==========
+    // PASSWORD_HASH will be replaced by GitHub Actions during build
+    // This is the SHA-256 hash of "{{CMS_PASSWORD_HASH}}"
+    const PASSWORD_HASH = '{{CMS_PASSWORD_HASH}}';
+    
+    // Session storage key (cleared when browser closes)
+    const SESSION_KEY = 'cms_authenticated';
+    const SESSION_TIMESTAMP_KEY = 'cms_auth_time';
+    
+    // Rate limiting
+    let failedAttempts = [];
+    const MAX_ATTEMPTS = 5;
+    const BLOCK_TIME = 30 * 60 * 1000; // 30 minutes
+    
+    function loadFailedAttempts() {
+      const stored = localStorage.getItem('cms_failed_attempts');
+      if (stored) {
+        try {
+          failedAttempts = JSON.parse(stored);
+          // Clean old attempts
+          const now = Date.now();
+          failedAttempts = failedAttempts.filter(t => now - t < BLOCK_TIME);
+          saveFailedAttempts();
+        } catch(e) { failedAttempts = []; }
+      }
+    }
+    
+    function saveFailedAttempts() {
+      localStorage.setItem('cms_failed_attempts', JSON.stringify(failedAttempts));
+    }
+    
+    function isRateLimited() {
+      loadFailedAttempts();
+      const now = Date.now();
+      const recentFailures = failedAttempts.filter(t => now - t < BLOCK_TIME);
+      return recentFailures.length >= MAX_ATTEMPTS;
+    }
+    
+    function getRemainingBlockTime() {
+      if (!isRateLimited()) return 0;
+      const now = Date.now();
+      const oldestRecent = Math.min(...failedAttempts.filter(t => now - t < BLOCK_TIME));
+      return Math.ceil((BLOCK_TIME - (now - oldestRecent)) / 60000); // minutes
+    }
+    
+    async function sha256(message) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(message);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    
+    function isAuthenticated() {
+      const auth = sessionStorage.getItem(SESSION_KEY);
+      const timestamp = sessionStorage.getItem(SESSION_TIMESTAMP_KEY);
+      
+      if (auth === 'true' && timestamp) {
+        // Session expires after 24 hours
+        const expiry = parseInt(timestamp) + (24 * 60 * 60 * 1000);
+        if (Date.now() < expiry) {
+          return true;
+        }
+      }
+      return false;
+    }
+    
+    async function performLogin(password) {
+      // Check rate limiting
+      if (isRateLimited()) {
+        const minutes = getRemainingBlockTime();
+        return { 
+          success: false, 
+          message: `Too many failed attempts. Please try again in ${minutes} minutes.`,
+          rateLimited: true
+        };
+      }
+      
+      // Hash the input password and compare with precomputed hash
+      const hashedInput = await sha256(password);
+      
+      if (hashedInput === PASSWORD_HASH) {
+        // Success - clear failed attempts
+        failedAttempts = [];
+        saveFailedAttempts();
+        
+        // Set session (will be cleared when browser closes or after 24 hours)
+        sessionStorage.setItem(SESSION_KEY, 'true');
+        sessionStorage.setItem(SESSION_TIMESTAMP_KEY, Date.now().toString());
+        
+        return { success: true };
+      }
+      
+      // Failed attempt - record it
+      failedAttempts.push(Date.now());
+      saveFailedAttempts();
+      
+      const remaining = MAX_ATTEMPTS - failedAttempts.filter(t => Date.now() - t < BLOCK_TIME).length;
+      return { 
+        success: false, 
+        message: `Invalid password. ${remaining} attempts remaining before 30 minute lockout.`
+      };
+    }
+    
+    function performLogout() {
+      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
+      return { success: true };
+    }
+    
+    // ========== CMS FUNCTIONS (Same as before) ==========
+    const STORAGE_KEY = 'bytelog_posts';
+    const CATEGORIES_KEY = 'bytelog_categories';
+    
+    const MASTER_CATEGORIES = [
+      { id: "programming", name: "Programming", icon: "fa-code", displayIcon: "💻" },
+      { id: "hardware", name: "Hardware", icon: "fa-desktop", displayIcon: "🖥️" },
+      { id: "security", name: "Security", icon: "fa-shield-haltered", displayIcon: "🔒" },
+      { id: "mobile-tricks", name: "Mobile Tricks", icon: "fa-mobile-alt", displayIcon: "📱" },
+      { id: "computer-tricks", name: "Computer Tricks", icon: "fa-laptop", displayIcon: "💻" },
+      { id: "tutorial", name: "Tutorial", icon: "fa-book", displayIcon: "📚" }
+    ];
+    
+    let categories = [];
+    let posts = [];
+    let editingPostId = null;
+    
+    function loadCategories() {
+      const stored = localStorage.getItem(CATEGORIES_KEY);
+      if (stored) {
+        categories = JSON.parse(stored);
+        let changed = false;
+        const progIdx = categories.findIndex(c => c.id === "programming");
+        if (progIdx !== -1) {
+          if (categories[progIdx].icon !== "fa-code" || categories[progIdx].displayIcon !== "💻") {
+            categories[progIdx].icon = "fa-code";
+            categories[progIdx].displayIcon = "💻";
+            categories[progIdx].name = "Programming";
+            changed = true;
+          }
+        } else {
+          categories.push({ id: "programming", name: "Programming", icon: "fa-code", displayIcon: "💻" });
+          changed = true;
+        }
+        const hwIdx = categories.findIndex(c => c.id === "hardware");
+        if (hwIdx !== -1) {
+          if (categories[hwIdx].icon !== "fa-desktop" || categories[hwIdx].displayIcon !== "🖥️") {
+            categories[hwIdx].icon = "fa-desktop";
+            categories[hwIdx].displayIcon = "🖥️";
+            categories[hwIdx].name = "Hardware";
+            changed = true;
+          }
+        } else {
+          categories.push({ id: "hardware", name: "Hardware", icon: "fa-desktop", displayIcon: "🖥️" });
+          changed = true;
+        }
+        for (const master of MASTER_CATEGORIES) {
+          if (master.id === "programming" || master.id === "hardware") continue;
+          const existing = categories.find(c => c.id === master.id);
+          if (!existing) {
+            categories.push({ ...master });
+            changed = true;
+          } else {
+            if (existing.icon !== master.icon || existing.displayIcon !== master.displayIcon) {
+              existing.icon = master.icon;
+              existing.displayIcon = master.displayIcon;
+              existing.name = master.name;
+              changed = true;
+            }
+          }
+        }
+        categories = categories.filter(c => MASTER_CATEGORIES.some(m => m.id === c.id));
+        if (changed) saveCategories();
+      } else {
+        categories = JSON.parse(JSON.stringify(MASTER_CATEGORIES));
+        saveCategories();
+      }
+    }
+    
+    function saveCategories() {
+      localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
+    }
+    
+    function loadPosts() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        posts = JSON.parse(stored);
+        let needsSave = false;
+        posts = posts.map(p => {
+          if (p.category === "emerging-tech") { p.category = "computer-tricks"; needsSave = true; }
+          if (p.category === "ai-ml") { p.category = "computer-tricks"; needsSave = true; }
+          if (p.category === "devops") { p.category = "mobile-tricks"; needsSave = true; }
+          return p;
+        });
+        if (needsSave) savePosts();
+      } else {
+        posts = [
+          { id: 1001, title: "USB Data Hidden by Virus – Complete Recovery Guide", excerpt: "Learn how to recover hidden data using CMD and attrib command. Step-by-step guide to restore your lost files from virus-infected USB drives.", category: "computer-tricks", imgUrl: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=600", date: "Apr 22, 2026", readTime: "8 min read", content: "<p>Complete recovery guide for USB data hidden by virus...</p>" },
+          { id: 1002, title: "Rust vs. Go: Performance face-off", excerpt: "Comparing memory safety and concurrency models for modern cloud-native development.", category: "programming", imgUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600", date: "Apr 10, 2025", readTime: "8 min read", content: "<p>Rust vs Go performance comparison...</p>" },
+          { id: 1003, title: "Understanding Modern CPU Architectures", excerpt: "Deep dive into Intel, AMD, and ARM processor designs and their impact on performance.", category: "hardware", imgUrl: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=600", date: "Apr 18, 2026", readTime: "10 min read", content: "<p>CPU architecture guide...</p>" }
+        ];
+        savePosts();
+      }
+    }
+    
+    function savePosts() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+    }
+    
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+    }
+    
+    function getCategoryDisplayName(catId) {
+      const cat = categories.find(c => c.id === catId);
+      return cat ? (cat.displayIcon ? `${cat.displayIcon} ${cat.name}` : cat.name) : catId;
+    }
+    
+    function renderCategoriesGrid() {
+      const grid = document.getElementById("categoriesGrid");
+      if (!grid) return;
+      if (!categories.length) {
+        grid.innerHTML = '<div class="empty-state">No categories.</div>';
+        return;
+      }
+      grid.innerHTML = categories.map(cat => {
+        const postCount = posts.filter(p => p.category === cat.id).length;
+        const displayEmoji = cat.displayIcon || "";
+        return `
+          <div class="category-card">
+            <div class="category-info">
+              <div style="width:40px; font-size:1.5rem; text-align:center;">${displayEmoji || `<i class="fas ${cat.icon}"></i>`}</div>
+              <div class="category-details">
+                <h4>${escapeHtml(cat.name)}</h4>
+                <p>${cat.id}</p>
+              </div>
+              <span class="category-stats">${postCount} posts</span>
+            </div>
+            <div class="category-actions">
+              <button class="edit-cat-btn" data-id="${cat.id}"><i class="fas fa-edit"></i></button>
+              <button class="delete-cat-btn" data-id="${cat.id}"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      document.querySelectorAll('.edit-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => openCategoryModal(btn.dataset.id));
+      });
+      document.querySelectorAll('.delete-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          if (confirm(`Delete category "${id}"? This will NOT delete posts, but they will need recategorization.`)) {
+            categories = categories.filter(c => c.id !== id);
+            saveCategories();
+            renderCategoriesGrid();
+            renderCategorySelect();
+            renderPostsTable();
+          }
+        });
+      });
+    }
+    
+    function renderCategorySelect() {
+      const select = document.getElementById("postCategory");
+      if (select) {
+        select.innerHTML = categories.map(cat => `<option value="${cat.id}">${cat.displayIcon ? cat.displayIcon + ' ' + cat.name : cat.name}</option>`).join('');
+      }
+    }
+    
+    function renderPostsTable() {
+      const tbody = document.getElementById("postsTableBody");
+      if (!tbody) return;
+      if (!posts.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No posts yet. Create your first article!</td></tr>';
+        return;
+      }
+      tbody.innerHTML = posts.map((post, idx) => `
+        <tr>
+          <td>${post.id || idx+1}</td>
+          <td><strong>${escapeHtml(post.title)}</strong></td>
+          <td>${escapeHtml(getCategoryDisplayName(post.category))}</td>
+          <td>${post.date || 'Unknown'}</td>
+          <td>
+            <button class="edit-post-btn" data-id="${post.id}"><i class="fas fa-edit"></i> Edit</button>
+            <button class="delete-post-btn" data-id="${post.id}"><i class="fas fa-trash"></i> Delete</button>
+          </td>
+        </tr>
+      `).join('');
+      
+      document.querySelectorAll('.edit-post-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const postId = parseInt(btn.dataset.id);
+          const post = posts.find(p => p.id === postId);
+          if (post) loadPostToForm(post);
+        });
+      });
+      document.querySelectorAll('.delete-post-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const postId = parseInt(btn.dataset.id);
+          if (confirm("Delete this post permanently?")) {
+            posts = posts.filter(p => p.id !== postId);
+            savePosts();
+            renderPostsTable();
+            renderCategoriesGrid();
+            if (editingPostId === postId) clearForm();
+          }
+        });
+      });
+    }
+    
+    function loadPostToForm(post) {
+      document.getElementById("postTitle").value = post.title;
+      document.getElementById("postExcerpt").value = post.excerpt || "";
+      document.getElementById("postCategory").value = post.category;
+      document.getElementById("postImage").value = post.imgUrl || post.image || "";
+      document.getElementById("postReadTime").value = post.readTime || "5 min read";
+      document.getElementById("postContent").value = post.content || "";
+      editingPostId = post.id;
+      const indicator = document.getElementById("editIndicator");
+      if (indicator) indicator.style.display = "inline-block";
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    function clearForm() {
+      const form = document.getElementById("postForm");
+      if (form) form.reset();
+      editingPostId = null;
+      const indicator = document.getElementById("editIndicator");
+      if (indicator) indicator.style.display = "none";
+    }
+    
+    function savePostFromForm(e) {
+      e.preventDefault();
+      const title = document.getElementById("postTitle").value.trim();
+      const excerpt = document.getElementById("postExcerpt").value.trim();
+      const category = document.getElementById("postCategory").value;
+      const imgUrl = document.getElementById("postImage").value.trim();
+      const readTime = document.getElementById("postReadTime").value.trim();
+      const content = document.getElementById("postContent").value.trim();
+      if (!title || !category || !content) return alert("Title, Category, and Content are required!");
+      const now = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      if (editingPostId) {
+        const index = posts.findIndex(p => p.id === editingPostId);
+        if (index !== -1) {
+          posts[index] = { ...posts[index], title, excerpt, category, imgUrl: imgUrl || posts[index].imgUrl, readTime: readTime || "5 min read", content, date: now };
+          savePosts();
+        }
+        editingPostId = null;
+      } else {
+        posts.unshift({ id: Date.now(), title, excerpt, category, imgUrl: imgUrl || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600", readTime: readTime || "5 min read", content, date: now });
+        savePosts();
+      }
+      clearForm();
+      renderPostsTable();
+      renderCategoriesGrid();
+      alert("✅ Post saved successfully!");
+    }
+    
+    function openCategoryModal(catId = null) {
+      const modal = document.getElementById("categoryModal");
+      if (!modal) return;
+      const titleEl = document.getElementById("categoryModalTitle");
+      if (titleEl) titleEl.innerHTML = catId ? "✏️ Edit Category" : "➕ Add Category";
+      const idInput = document.getElementById("categoryId");
+      if (idInput) idInput.disabled = !!catId;
+      const editingIdField = document.getElementById("editingCategoryId");
+      if (catId) {
+        const cat = categories.find(c => c.id === catId);
+        if (cat) {
+          const catIdInput = document.getElementById("categoryId");
+          const catNameInput = document.getElementById("categoryName");
+          const catIconInput = document.getElementById("categoryIcon");
+          const catDisplayIconInput = document.getElementById("categoryDisplayIcon");
+          if (catIdInput) catIdInput.value = cat.id;
+          if (catNameInput) catNameInput.value = cat.name;
+          if (catIconInput) catIconInput.value = cat.icon || "fa-folder";
+          if (catDisplayIconInput) catDisplayIconInput.value = cat.displayIcon || "";
+          if (editingIdField) editingIdField.value = cat.id;
+          const preview = document.getElementById("iconPreview");
+          if (preview) preview.innerHTML = `<i class="fas ${cat.icon || 'fa-folder'}"></i> ${cat.icon || 'fa-folder'}`;
+        }
+      } else {
+        const catForm = document.getElementById("categoryForm");
+        if (catForm) catForm.reset();
+        if (idInput) idInput.disabled = false;
+        const catIconInput = document.getElementById("categoryIcon");
+        if (catIconInput) catIconInput.value = "fa-folder";
+        const preview = document.getElementById("iconPreview");
+        if (preview) preview.innerHTML = '<i class="fas fa-folder"></i> fa-folder';
+        if (editingIdField) editingIdField.value = "";
+      }
+      modal.classList.add("active");
+    }
+    
+    function closeCategoryModal() {
+      const modal = document.getElementById("categoryModal");
+      if (modal) modal.classList.remove("active");
+    }
+    
+    function handleCategorySubmit(e) {
+      e.preventDefault();
+      let id = document.getElementById("categoryId").value.trim();
+      const name = document.getElementById("categoryName").value.trim();
+      let icon = document.getElementById("categoryIcon").value.trim();
+      const displayIcon = document.getElementById("categoryDisplayIcon").value.trim();
+      const editingId = document.getElementById("editingCategoryId").value;
+      if (!id || !name) return alert("Category ID and Name are required!");
+      id = id.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      if (!icon) icon = "fa-folder";
+      if (editingId) {
+        const index = categories.findIndex(c => c.id === editingId);
+        if (index !== -1) {
+          const oldId = categories[index].id;
+          categories[index] = { ...categories[index], id, name, icon, displayIcon };
+          if (oldId !== id) {
+            posts = posts.map(p => p.category === oldId ? { ...p, category: id } : p);
+            savePosts();
+          }
+          saveCategories();
+        }
+      } else {
+        if (categories.some(c => c.id === id)) return alert("Category already exists!");
+        categories.push({ id, name, icon, displayIcon });
+        saveCategories();
+      }
+      renderCategoriesGrid();
+      renderCategorySelect();
+      renderPostsTable();
+      closeCategoryModal();
+      alert("✅ Category saved!");
+    }
+    
+    function resetCategoriesToMaster() {
+      if (confirm("⚠️ This will reset all categories to defaults. Custom categories will be lost. Continue?")) {
+        categories = JSON.parse(JSON.stringify(MASTER_CATEGORIES));
+        saveCategories();
+        renderCategoriesGrid();
+        renderCategorySelect();
+        renderPostsTable();
+        alert("✅ Categories reset to defaults!");
+      }
+    }
+    
+    function buildAdminPanelHTML() {
+      return `
+        <div class="cms-container" id="adminPanel">
+          <div class="header">
+            <div class="logo"><i class="fas fa-terminal"></i> Saqib Afridi CMS <span class="admin-badge">● Secure (SHA-256)</span></div>
+            <div>
+              <button class="view-blog-btn" id="viewBlogBtn"><i class="fas fa-external-link-alt"></i> View Blog</button>
+              <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+          </div>
+          <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div class="sync-badge"><i class="fas fa-shield-alt"></i> 🔐 Secure Authentication | Rate Limited: ${MAX_ATTEMPTS} attempts/30min</div>
+            <button id="forceResetCategoriesBtn" class="reset-categories-btn"><i class="fas fa-database"></i> Reset Categories to Default</button>
+          </div>
+          <div class="form-card category-manager">
+            <h3><i class="fas fa-tags"></i> Category Manager</h3>
+            <div class="category-header">
+              <p style="color: #94a3b8; font-size: 0.85rem;">Manage your blog categories with custom icons and emojis.</p>
+              <button class="add-category-btn" id="addCategoryBtn"><i class="fas fa-plus"></i> Add Category</button>
+            </div>
+            <div id="categoriesGrid" class="categories-grid">Loading categories...</div>
+          </div>
+          <div class="form-card">
+            <h3><i class="fas fa-pen-fancy"></i> Create / Edit Article</h3>
+            <form id="postForm">
+              <div class="form-group"><label>Title *</label><input type="text" id="postTitle" placeholder="Article title" required></div>
+              <div class="form-group"><label>Excerpt</label><textarea id="postExcerpt" rows="2" placeholder="Brief summary..."></textarea></div>
+              <div class="form-group"><label>Category *</label><select id="postCategory"></select></div>
+              <div class="form-group"><label>Featured Image URL</label><input type="text" id="postImage" placeholder="https://images.unsplash.com/..."></div>
+              <div class="form-group"><label>Read Time</label><input type="text" id="postReadTime" placeholder="5 min read"></div>
+              <div class="form-group"><label>Full Content *</label><textarea id="postContent" rows="10" placeholder="Write your article content in HTML format..."></textarea></div>
+              <div class="form-actions">
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Publish Post</button>
+                <button type="button" class="btn-secondary" id="clearFormBtn"><i class="fas fa-eraser"></i> Clear Form</button>
+                <span id="editIndicator" class="edit-indicator"><i class="fas fa-edit"></i> Editing mode</span>
+              </div>
+            </form>
+          </div>
+          <div class="posts-table">
+            <h3><i class="fas fa-list"></i> All Articles (${posts.length} total)</h3>
+            <table>
+              <thead>
+                <tr><th>ID</th><th>Title</th><th>Category</th><th>Date</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="postsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="categoryModal" class="modal-overlay">
+          <div class="modal-container">
+            <div class="modal-header"><h2 id="categoryModalTitle">Add Category</h2><button class="modal-close" id="closeCategoryModalBtn">&times;</button></div>
+            <div class="modal-body">
+              <form id="categoryForm">
+                <div class="form-group"><label>Category ID (slug)</label><input type="text" id="categoryId" placeholder="e.g., programming" required></div>
+                <div class="form-group"><label>Display Name</label><input type="text" id="categoryName" placeholder="Programming" required></div>
+                <div class="form-group"><label>Font Awesome Icon</label><input type="text" id="categoryIcon" value="fa-folder"><div class="icon-preview" id="iconPreview"><i class="fas fa-folder"></i> fa-folder</div></div>
+                <div class="form-group"><label>Display Emoji</label><input type="text" id="categoryDisplayIcon" placeholder="💻"></div>
+                <input type="hidden" id="editingCategoryId">
+                <div class="form-actions"><button type="submit" class="btn-primary">Save Category</button><button type="button" class="btn-secondary" id="cancelCategoryBtn">Cancel</button></div>
+              </form>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    function attachAdminEvents() {
+      const viewBlogBtn = document.getElementById("viewBlogBtn");
+      if (viewBlogBtn) viewBlogBtn.addEventListener("click", () => window.open('index.html', '_blank'));
+      
+      const logoutBtn = document.getElementById("logoutBtn");
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+          performLogout();
+          document.getElementById('adminPanelRoot').innerHTML = '';
+          document.getElementById('adminPanelRoot').style.display = 'none';
+          document.getElementById('loginScreen').style.display = 'flex';
+          const pwdInput = document.getElementById('passwordInput');
+          if (pwdInput) pwdInput.value = '';
+          const infoDiv = document.getElementById('loginInfo');
+          if (infoDiv) {
+            infoDiv.style.display = 'block';
+            infoDiv.innerHTML = '<i class="fas fa-check-circle"></i> Logged out successfully.';
+            setTimeout(() => { infoDiv.style.display = 'none'; }, 3000);
+          }
+        });
+      }
+      
+      const resetBtn = document.getElementById("forceResetCategoriesBtn");
+      if (resetBtn) resetBtn.addEventListener("click", resetCategoriesToMaster);
+      
+      const postForm = document.getElementById("postForm");
+      if (postForm) postForm.addEventListener("submit", savePostFromForm);
+      
+      const clearFormBtn = document.getElementById("clearFormBtn");
+      if (clearFormBtn) clearFormBtn.addEventListener("click", clearForm);
+      
+      const addCategoryBtn = document.getElementById("addCategoryBtn");
+      if (addCategoryBtn) addCategoryBtn.addEventListener("click", () => openCategoryModal(null));
+      
+      const cancelCategoryBtn = document.getElementById("cancelCategoryBtn");
+      if (cancelCategoryBtn) cancelCategoryBtn.addEventListener("click", closeCategoryModal);
+      
+      const closeModalBtn = document.getElementById("closeCategoryModalBtn");
+      if (closeModalBtn) closeModalBtn.addEventListener("click", closeCategoryModal);
+      
+      const categoryForm = document.getElementById("categoryForm");
+      if (categoryForm) categoryForm.addEventListener("submit", handleCategorySubmit);
+      
+      const categoryIcon = document.getElementById("categoryIcon");
+      if (categoryIcon) {
+        categoryIcon.addEventListener("input", () => {
+          const icon = categoryIcon.value.trim() || "fa-folder";
+          const preview = document.getElementById("iconPreview");
+          if (preview) preview.innerHTML = `<i class="fas ${icon}"></i> ${icon}`;
+        });
+      }
+    }
+    
+    function showAdminPanel() {
+      if (!isAuthenticated()) {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('adminPanelRoot').style.display = 'none';
+        return;
+      }
+      
+      document.getElementById('loginScreen').style.display = 'none';
+      const adminRoot = document.getElementById('adminPanelRoot');
+      adminRoot.innerHTML = buildAdminPanelHTML();
+      adminRoot.style.display = 'block';
+      
+      loadCategories();
+      loadPosts();
+      renderCategoriesGrid();
+      renderCategorySelect();
+      renderPostsTable();
+      attachAdminEvents();
+    }
+    
+    async function init() {
+      // Show login screen first
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('adminPanelRoot').style.display = 'none';
+      
+      // Check if already authenticated
+      if (isAuthenticated()) {
+        showAdminPanel();
+      }
+      
+      // Login button handler
+      const loginBtn = document.getElementById('loginBtn');
+      if (loginBtn) {
+        loginBtn.addEventListener('click', async () => {
+          const pwdInput = document.getElementById('passwordInput');
+          const pwd = pwdInput ? pwdInput.value : '';
+          const errorDiv = document.getElementById('loginError');
+          const infoDiv = document.getElementById('loginInfo');
+          
+          loginBtn.disabled = true;
+          loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+          
+          if (errorDiv) errorDiv.style.display = 'none';
+          if (infoDiv) infoDiv.style.display = 'none';
+          
+          const result = await performLogin(pwd);
+          
+          if (result.success) {
+            showAdminPanel();
+          } else {
+            if (errorDiv) {
+              errorDiv.innerText = result.message || '❌ Invalid password. Access denied.';
+              errorDiv.style.display = 'block';
+            }
+            if (pwdInput) pwdInput.value = '';
+            pwdInput.focus();
+          }
+          
+          loginBtn.disabled = false;
+          loginBtn.innerHTML = '<i class="fas fa-unlock-alt"></i> Authenticate';
+        });
+      }
+      
+      // Enter key support
+      const pwdInput = document.getElementById('passwordInput');
+      if (pwdInput) {
+        pwdInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const loginBtn = document.getElementById('loginBtn');
+            if (loginBtn) loginBtn.click();
+          }
+        });
+      }
+    }
+    
+    init();
+  })();
+</script>
+</body>
+</html>
