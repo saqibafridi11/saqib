@@ -4,13 +4,16 @@ git add cms.html
 git commit -m "Add complete working CMS with submit button fix"
 git push origin main
 
-
-
-
-
 Push All Files (Everything)>>>>>>>>>>>>
 
 cd C:\xampp\htdocs\my
 git add .
 git commit -m "Complete website update with all files"
 git push origin main
+
+🔄 Force Push (Overwrite GitHub with Local)
+
+cd C:\xampp\htdocs\my
+git add --all
+git commit -m "Force sync: complete local folder to GitHub"
+git push origin main --force
