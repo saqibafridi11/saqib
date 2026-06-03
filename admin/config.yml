@@ -1,8 +1,6 @@
 backend:
-  name: github
-  repo: saqibafridi11/saqib
+  name: git-gateway
   branch: main
-  proxy_url: https://auth.decapcms.org
 
 media_folder: "images/uploads"
 public_folder: "/images/uploads"
