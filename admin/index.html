@@ -6,41 +6,6 @@
   <title>Saqib Afridi - CMS</title>
 </head>
 <body>
-  <script>
-    // This enables the access token login option
-    window.CMS_MANUAL_INIT = true;
-  </script>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
-  <script>
-    DecapCMS.init({
-      backend: {
-        name: 'github',
-        repo: 'saqibafridi11/saqib',
-        branch: 'main',
-        // This forces the access token option to appear
-        auth_type: 'token'
-      },
-      config: {
-        media_folder: 'images/uploads',
-        public_folder: '/images/uploads',
-        collections: [
-          {
-            name: 'posts',
-            label: 'Blog Posts',
-            folder: '_posts',
-            create: true,
-            slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
-            fields: [
-              { label: 'Title', name: 'title', widget: 'string' },
-              { label: 'Publish Date', name: 'date', widget: 'datetime' },
-              { label: 'Category', name: 'category', widget: 'select', options: ['programming', 'hardware', 'security', 'computer-tricks', 'tutorial'] },
-              { label: 'Excerpt', name: 'excerpt', widget: 'text' },
-              { label: 'Body', name: 'body', widget: 'markdown' }
-            ]
-          }
-        ]
-      }
-    });
-  </script>
 </body>
 </html>
